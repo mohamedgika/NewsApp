@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "The Daily Signal",
+    "slug": "the-daily-signal",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#f6f5ef"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.dailysignal"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#f6f5ef"
+      },
+      "package": "com.example.dailysignal"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "daily-briefing",
+          "color": "#c65d36"
+        }
+      ]
+    ],
+    "web": {
+      "bundler": "metro",
+      "name": "The Daily Signal",
+      "shortName": "Signal"
+    }
+  }
+}
