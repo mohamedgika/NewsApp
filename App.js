@@ -38,7 +38,7 @@ const STORAGE = {
   settings: '@daily-signal/settings',
 };
 
-const DEFAULT_SETTINGS = { dailyBriefing: false, compactCards: false, displayName: '' };
+const DEFAULT_SETTINGS = { dailyBriefing: false, briefingNotificationId: null, compactCards: false, displayName: '' };
 const FILTERS = ['For you', 'AI', 'Startups', 'Science'];
 
 function Brand({ small = false }) {
@@ -158,18 +158,20 @@ function adaptStory(hit) {
 
 function StoryCard({ story, saved, onOpen, onToggleSave, compact = false }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Read story: ${story.title}`}
-      onPress={() => onOpen(story)}
-      style={({ pressed }) => [styles.storyCard, compact && styles.storyCardCompact, pressed && styles.storyCardPressed]}
-    >
+    <View style={[styles.storyCard, compact && styles.storyCardCompact]}>
       <View style={styles.storyMeta}>
         <Text style={styles.storyCategory}>{story.category}</Text>
         <Text style={styles.metaDot}>·</Text>
         <Text style={styles.storyAge}>{formatAge(story.createdAt)}</Text>
       </View>
-      <Text numberOfLines={compact ? 2 : 3} style={styles.storyTitle}>{story.title}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Read story: ${story.title}`}
+        onPress={() => onOpen(story)}
+        style={({ pressed }) => pressed && styles.storyCardPressed}
+      >
+        <Text numberOfLines={compact ? 2 : 3} style={styles.storyTitle}>{story.title}</Text>
+      </Pressable>
       <View style={styles.storyFooter}>
         <View style={styles.storyStats}>
           <MaterialCommunityIcons name="arrow-up-bold-outline" size={15} color={COLORS.muted} />
@@ -183,18 +185,17 @@ function StoryCard({ story, saved, onOpen, onToggleSave, compact = false }) {
             accessibilityRole="button"
             accessibilityLabel={saved ? 'Remove from saved stories' : 'Save story'}
             hitSlop={10}
-            onPress={(event) => {
-              event.stopPropagation();
-              onToggleSave(story);
-            }}
+            onPress={() => onToggleSave(story)}
             style={styles.saveButton}
           >
             <MaterialCommunityIcons name={saved ? 'bookmark' : 'bookmark-outline'} size={19} color={saved ? COLORS.orange : COLORS.muted} />
           </Pressable>
-          <MaterialCommunityIcons name="arrow-top-right" size={18} color={COLORS.green} />
+          <Pressable accessibilityRole="button" accessibilityLabel={`Open story: ${story.title}`} onPress={() => onOpen(story)} style={styles.openStoryButton}>
+            <MaterialCommunityIcons name="arrow-top-right" size={18} color={COLORS.green} />
+          </Pressable>
         </View>
       </View>
-    </Pressable>
+    </View>
   );
 }
 
@@ -400,7 +401,10 @@ export default function App() {
 
   async function toggleReminder(enabled) {
     if (!enabled) {
-      await updateSettings({ dailyBriefing: false });
+      if (Platform.OS !== 'web' && settings.briefingNotificationId) {
+        await Notifications.cancelScheduledNotificationAsync(settings.briefingNotificationId);
+      }
+      await updateSettings({ dailyBriefing: false, briefingNotificationId: null });
       return;
     }
     try {
@@ -421,10 +425,17 @@ export default function App() {
           return;
         }
       }
-      await updateSettings({ dailyBriefing: true });
+      let briefingNotificationId = null;
+      if (Platform.OS !== 'web') {
+        briefingNotificationId = await Notifications.scheduleNotificationAsync({
+          content: { title: 'Your Signal briefing is ready', body: 'A fresh batch of stories is waiting in Today.', sound: true },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: 8, minute: 0 },
+        });
+      }
+      await updateSettings({ dailyBriefing: true, briefingNotificationId });
       setNotice('Daily briefing is enabled on this device.');
     } catch {
-      setNotice('Notification permission could not be requested. Check your device settings.');
+      setNotice('The daily briefing could not be scheduled. Check notification permission and try again.');
     }
   }
 
@@ -864,6 +875,7 @@ const styles = StyleSheet.create({
   storyAuthor: { color: COLORS.muted, fontSize: 10, flexShrink: 1 },
   storyActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   saveButton: { padding: 3 },
+  openStoryButton: { padding: 3 },
   feedSpinner: { marginVertical: 48 },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 38 },
   emptyIcon: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.lightGreen, borderRadius: 18, marginBottom: 14 },

@@ -4,7 +4,7 @@ A cross-platform React Native news reader built with Expo. It fetches current te
 
 ## Run the app
 
-Requirements: Node.js 20.19+ and npm.
+Requirements: Node.js 22.13+ and npm.
 
 ```bash
 npm install
